@@ -36,14 +36,13 @@ class WSGIServer(object):
             self.handle_one_request()
 
     def handle_one_request(self):
-        request_data = self.client_connection.recv(1024)
-        self.request_data = request_data = request_data.decode('utf-8')
+        self.request_data = self.client_connection.recv(1024).decode("utf-8")
         # Print formatted request data a la 'curl -v'
         print(''.join(
-            f'< {line}\n' for line in request_data.splitlines()
+            f'< {line}\n' for line in self.request_data.splitlines()
         ))
 
-        self.parse_request(request_data)
+        self.parse_request(self.request_data)
 
         # Construct environment dictionary using request data
         env = self.get_environ()
