@@ -3,6 +3,13 @@ import io
 import socket
 import sys
 
+"""
+    server accept http request, parse the request, put all info in
+    enviro object and call wsgi framework `app` function passing the environ
+    and a start_response function that will put the headers together.
+    Then take the returned response body from the `app` function, put everything
+    together and send it off to the client(browser).
+"""
 class WSGIServer(object):
     def __init__(self, server_address):
         self.request_queue_size = 1

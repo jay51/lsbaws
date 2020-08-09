@@ -1,5 +1,10 @@
 
 
+"""
+    framework app function use the environ object to decide the routing and
+    other things. Then it calles start_response passing all the headers from
+    the framework. Then return a response body
+"""
 # run like this: python server.py framework:app
 def app(environ, start_response):
     """A barebones WSGI application.
