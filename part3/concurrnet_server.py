@@ -24,10 +24,10 @@ REQUEST_QUEUE_SIZE = 5
 
 def grim_reaper(signum, frame):
     pid, status = os.wait()
-    print(
-        'Child {pid} terminated with status {status}'
-        '\n'.format(pid=pid, status=status)
-    )
+    # don't print inside signal handler because it's not safe. 
+    # you could get many signals at one time which interupt the print causing unwanted behievor.
+    # print('Child {pid} terminated with status {status}' '\n'.format(pid=pid, status=status))
+
 
 
 def handle_request(client_connection):
