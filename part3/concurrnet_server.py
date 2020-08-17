@@ -1,17 +1,33 @@
 import socket
 import time
 import os
+import signal
+import errno
 
 """
     This simples way to make concurrent server is to use the fork unix system call.
+    * make sure to close duplicate socket descriptors
+
     The kernel uses descriptor reference counts to decide 
     whether to close the file/socket or not.
 
-    * make sure to close duplicate socket descriptors
+    If you don't close duplicate descriptors, the clients won't terminate because the client connections won't get closed.
+    If you don't close duplicate descriptors, your long-running server will eventually run out of available file descriptors (max open files).
+    When you fork a child process and it exits and the parent process doesn't wait for it and doesn't collect its termination status, it becomes a zombie.
+    Zombies need to eat something and, in our case, it's memory. Your server will eventually run out of available 
+    processes (max user processes) if it does't take care of zombies. You can't kill a zombie, you need to wait for it.
 """
 
 SERVER_ADDRESS = (HOST, PORT) = '', 8888
 REQUEST_QUEUE_SIZE = 5
+
+
+def grim_reaper(signum, frame):
+    pid, status = os.wait()
+    print(
+        'Child {pid} terminated with status {status}'
+        '\n'.format(pid=pid, status=status)
+    )
 
 
 def handle_request(client_connection):
@@ -23,7 +39,7 @@ HTTP/1.1 200 OK
 Hello, World!
 """
     client_connection.sendall(http_response)
-    time.sleep(20)  # sleep and block the process for 60 seconds
+    time.sleep(5)  # sleep and block the process for 60 seconds
 
 
 def serve_forever():
@@ -31,16 +47,25 @@ def serve_forever():
     listen_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     listen_socket.bind(SERVER_ADDRESS)
     listen_socket.listen(REQUEST_QUEUE_SIZE)
+    signal.signal(signal.SIGCHLD, grim_reaper)
     print("server is listning on port", PORT)
 
     while True:
-        client_connection, client_address = listen_socket.accept()
+        # if accept gets interupted by the signal interupt, continue the loop to re accept again
+        try:
+            client_connection, client_address = listen_socket.accept()
+        except IOError as e:
+            code, msg = e.args
+            if code == errno.ENTIR: continue
+            else: raise
+            
         pid = os.fork()
         if pid == 0: # child
             print('Serving HTTP on port {} processs ID {} ...'.format(PORT, os.getpid()))
             listen_socket.close() # close child copy
             handle_request(client_connection)
             client_connection.close()
+            os._exit(0)
         else:
             # close client connection b/c child is handling that request
             # and keep listining for more connections
