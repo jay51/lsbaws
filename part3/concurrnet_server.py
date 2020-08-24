@@ -23,10 +23,20 @@ REQUEST_QUEUE_SIZE = 5
 
 
 def grim_reaper(signum, frame):
-    pid, status = os.wait()
     # don't print inside signal handler because it's not safe. 
     # you could get many signals at one time which interupt the print causing unwanted behievor.
     # print('Child {pid} terminated with status {status}' '\n'.format(pid=pid, status=status))
+    while True:
+        try:
+            pid, status = os.waitpid(-1, os.WNOHANG)
+        except OSError:
+                return
+        if pid == 0:
+                return
+
+            
+    pid, status = os.wait()
+
 
 
 
@@ -51,7 +61,7 @@ def serve_forever():
     print("server is listning on port", PORT)
 
     while True:
-        # if accept gets interupted by the signal interupt, continue the loop to re accept again
+        # if accept gets interupted by the signal interupt, continue the loop to reaccept again
         try:
             client_connection, client_address = listen_socket.accept()
         except IOError as e:
